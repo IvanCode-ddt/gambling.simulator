@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Admin - Mini Betting</title>
+<style>
+body { font-family:'Segoe UI', sans-serif; background:#f4f6f8; margin:0; padding:0; }
+header { background:#1a73e8; color:white; padding:12px 24px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.1);}
+header h1 { margin:0; font-size:1.4em; }
+.container { max-width:1200px; margin:20px auto; padding:0 16px; }
+.column { background:#fff; border-radius:8px; padding:20px; box-shadow:0 2px 6px rgba(0,0,0,0.08);}
+h2 { margin-top:0; font-size:1.3em; margin-bottom:16px; }
+.match-card { border:1px solid #e0e0e0; padding:16px; margin-bottom:16px; border-radius:8px; background:#fafafa; box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+.odds-group { margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;}
+.odds-group div { flex:1; min-width:120px;}
+.odds-group input { width:100%; padding:6px 8px; border-radius:4px; border:1px solid #ccc; }
+button { cursor:pointer; padding:8px 14px; border:none; border-radius:4px; background:#1a73e8; color:white; margin-right:6px; margin-top:6px; transition:0.2s; }
+button:hover { opacity:0.9; }
+button.danger { background:#e53935; }
+button.secondary { background:#555; }
+label.result-check { display:block; margin-top:6px; font-size:0.95em; }
+input[type=text], input[type=number] { padding:6px; width:70%; margin-bottom:6px; border-radius:4px; border:1px solid #ccc; }
+.group-title { font-weight:bold; margin-top:10px; margin-bottom:4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚙️ Admin Mini Betting</h1>
+  <button id="logoutBtn">Đăng xuất</button>
+</header>
+
+<div class="container column">
+  <h2>🎮 Quản lý trận & kèo</h2>
+  <button id="addMatchBtn">➕ Thêm trận</button>
+  <div id="firebaseMatches"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyAz6bab_GFDCMI6TQNpyJAySXruvZN7p5c",
+  authDomain: "minibetting-30c79.firebaseapp.com",
+  projectId: "minibetting-30c79",
+  storageBucket: "minibetting-30c79.firebasestorage.app",
+  messagingSenderId: "628216149749",
+  appId: "1:628216149749:web:c029143fbb24dbe4bf77bc",
+  measurementId: "G-CB3GKJX189"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const matchesRef = collection(db,"matches");
+const firebaseMatchesEl = document.getElementById("firebaseMatches");
+const addMatchBtn = document.getElementById("addMatchBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
+// --- Auth
+onAuthStateChanged(auth,user=>{ if(!user) location.href="index.html"; });
+logoutBtn.onclick=()=>signOut(auth);
+
+// --- Load matches
+onSnapshot(matchesRef,snap=>{
+  firebaseMatchesEl.innerHTML="";
+  snap.forEach(docSnap=>renderFirebaseMatch(docSnap.id,docSnap.data()));
+});
+
+// --- Render match card
+function renderFirebaseMatch(id,m){
+  const card=document.createElement("div");
+  card.className="match-card";
+
+  // nhóm kèo
+  const group1=["winA","draw","winB"];
+  const group2=["over25","under25"];
+  const group3=["cornerOver","cornerUnder"];
+  const group4=["next15Yes","next15No"];
+
+  function renderOddsGroup(keys){
+    return `<div class="odds-group">${keys.map(k=>`
+      <div>
+        <label>${translateKey(k,m)}</label>
+        <input data-odd="${k}" value="${m.odds[k]||1.0}">
+      </div>`).join('')}</div>`;
+  }
+
+  function renderResultsGroup(keys){
+    return `<div>${keys.map(k=>`
+      <label class="result-check">
+        <input type="checkbox" data-result="${k}" ${m.results && m.results[k]==='win'?'checked':''}>
+        ${translateKey(k,m)} thắng
+      </label>`).join('')}</div>`;
+  }
+
+  card.innerHTML=`
+    <strong>${m.teamA}</strong> 🆚 <strong>${m.teamB}</strong><br>
+    🕒 ${new Date(m.startTime).toLocaleString()}<br>
+    Trạng thái: <b>${m.status}</b><br><br>
+
+    <div class="group-title">🏆 Kết quả</div>${renderOddsGroup(group1)}
+    <div class="group-title">⚽ Tổng bàn thắng</div>${renderOddsGroup(group2)}
+    <div class="group-title">⛳ Góc</div>${renderOddsGroup(group3)}
+    <div class="group-title">🔔 Rung</div>${renderOddsGroup(group4)}
+
+    <div class="group-title">📊 Kết quả đã thắng</div>
+    ${renderResultsGroup([...group1,...group2,...group3,...group4])}
+
+    <br>
+    <button data-save="${id}">💾 Lưu</button>
+    <button data-publish="${id}" class="secondary">📢 Công bố</button>
+    <button data-delete="${id}" class="danger">🗑 Xóa</button>
+  `;
+
+  firebaseMatchesEl.appendChild(card);
+
+  card.querySelector(`[data-save="${id}"]`).onclick=async()=>{
+    const newOdds={};
+    card.querySelectorAll("input[data-odd]").forEach(inp=>newOdds[inp.dataset.odd]=parseFloat(inp.value));
+    await updateDoc(doc(db,"matches",id),{odds:newOdds});
+    alert("✅ Đã lưu odds!");
+  };
+
+  card.querySelector(`[data-publish="${id}"]`).onclick=async()=>{
+    const results={};
+    card.querySelectorAll("input[data-result]").forEach(chk=>results[chk.dataset.result]=chk.checked?'win':'lose');
+    await updateDoc(doc(db,"matches",id),{results,status:'finished'});
+    alert("📢 Đã công bố kết quả!");
+  };
+
+  card.querySelector(`[data-delete="${id}"]`).onclick=async()=>{
+    if(confirm("Xóa trận này?")) await deleteDoc(doc(db,"matches",id));
+  };
+}
+
+// --- Thêm trận mới
+addMatchBtn.onclick=async()=>{
+  const teamA=prompt("Tên đội A");
+  const teamB=prompt("Tên đội B");
+  if(!teamA||!teamB) return alert("Nhập đủ tên đội!");
+  const startTime=new Date().toISOString();
+  const odds={winA:1.8,draw:3.2,winB:2.5,over25:1.9,under25:1.9,cornerOver:1.85,cornerUnder:1.85,next15Yes:2.5,next15No:1.4};
+  await addDoc(matchesRef,{teamA,teamB,startTime,odds,status:'open'});
+}
+
+// --- Translate key
+function translateKey(key,m){
+  switch(key){
+    case 'winA': return `${m.teamA} thắng`;
+    case 'draw': return 'Hòa';
+    case 'winB': return `${m.teamB} thắng`;
+    case 'over25': return 'Tài 2.5';
+    case 'under25': return 'Xỉu 2.5';
+    case 'cornerOver': return 'Tài góc';
+    case 'cornerUnder': return 'Xỉu góc';
+    case 'next15Yes': return 'Có rung';
+    case 'next15No': return 'Không rung';
+    default: return key;
+  }
+}
+</script>
+</body>
+</html>

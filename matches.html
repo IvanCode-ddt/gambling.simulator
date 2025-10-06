@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Mini Betting - Đặt cược</title>
+<style>
+  body { font-family: sans-serif; max-width: 1000px; margin:auto; padding:20px; background:#f5f5f5; }
+  header { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:16px; }
+  .match-card { border:1px solid #ddd; padding:12px; margin-bottom:12px; border-radius:8px; background:#fff; }
+  .odds-group { margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; }
+  .odds-group button { padding:8px; cursor:pointer; border:1px solid #ccc; border-radius:6px; background:#eee; transition:0.2s; }
+  .odds-group button:hover { background:#ddd; }
+  .selected { background:#ffc107 !important; }
+  .confirm-bet-btn { margin-top:6px; padding:6px 12px; background:#28a745; color:white; border:none; border-radius:6px; cursor:pointer; }
+  .confirm-bet-btn:disabled { background:#aaa; cursor:not-allowed; }
+  #ticketModal { display:none; position:fixed; left:0; top:0; width:100%; height:100%; background: rgba(0,0,0,0.5); align-items:center; justify-content:center; }
+  .modal-content { background:white; padding:16px; border-radius:8px; width:90%; max-width:700px; max-height:80%; overflow:auto; }
+  table { width:100%; border-collapse:collapse; margin-top:8px; }
+  th,td { border-bottom:1px solid #eee; padding:6px; text-align:left; }
+</style>
+</head>
+<body>
+<header>
+  <div>👤 <span id="userEmail">—</span></div>
+  <div>💰 Số dư: <b id="userBalance">0</b> VNĐ</div>
+  <div>
+    <button id="ticketBtn">🎟 Vé cược</button>
+    <button id="logoutBtn">Đăng xuất</button>
+  </div>
+</header>
+
+<p>⏱️ Tỷ lệ & kèo do admin cập nhật (cập nhật mỗi ~10 phút). Khi admin công bố kết quả, hệ thống sẽ tự xử lý vé.</p>
+
+<div id="matchContainer"></div>
+
+<h2>🥇 Bảng xếp hạng</h2>
+<table id="leaderboard">
+  <thead><tr><th>#</th><th>Người chơi</th><th>Số dư</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<!-- Popup vé cược -->
+<div id="ticketModal">
+  <div class="modal-content">
+    <button id="ticketClose">Đóng</button>
+    <h3>🎟 Vé cược của tôi</h3>
+    <table>
+      <thead><tr><th>Trận</th><th>Kèo</th><th>Số tiền</th><th>Trạng thái</th><th>Payout</th></tr></thead>
+      <tbody id="ticketTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script type="module" src="matches.js"></script>
+</body>
+</html>

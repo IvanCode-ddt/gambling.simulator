@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Mini Betting</title>
+  <link rel="stylesheet" href="style.css">
+ 
+ <!-- Firebase App -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<!-- Firebase Auth -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<!-- Firebase Firestore -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <h1>Mini Betting</h1>
+
+  <div id="authSection">
+    <h2>Đăng ký</h2>
+    <input id="regEmail" placeholder="Email hoặc nickname">
+    <input id="regPass" type="password" placeholder="Mật khẩu">
+    <button id="btnRegister">Đăng ký</button>
+
+    <h2>Đăng nhập</h2>
+    <input id="loginEmail" placeholder="Email hoặc nickname">
+    <input id="loginPass" type="password" placeholder="Mật khẩu">
+    <button id="btnLogin">Đăng nhập</button>
+  </div>
+
+  <div id="leaderboardSection">
+    <h2>Bảng xếp hạng</h2>
+    <table id="leaderboard">
+      <thead>
+        <tr><th>#</th><th>Người chơi</th><th>Số dư</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</body>
+</html>
