@@ -66,9 +66,9 @@ onAuthStateChanged(auth, async (user)=>{
 logoutBtn.onclick = ()=>signOut(auth);
 
 // Vé cược popup
-ticketBtn.onclick=()=>{ ticketModal.style.display='flex'; loadMyTickets(); };
-ticketClose.onclick=()=>{ ticketModal.style.display='none'; };
-window.onclick=(e)=>{ if(e.target===ticketModal) ticketModal.style.display='none'; };
+ticketBtn.onclick = ()=>{ ticketModal.style.display='flex'; loadMyTickets(); };
+ticketClose.onclick = ()=>{ ticketModal.style.display='none'; };
+window.onclick = (e)=>{ if(e.target===ticketModal) ticketModal.style.display='none'; };
 
 // Load trận đang mở
 function loadMatches(){
@@ -107,20 +107,46 @@ function loadMatches(){
   });
 }
 
-// Chọn/deselect kèo
+// Chọn kèo (chỉ được 1 kèo/trận) và hiển thị dự đoán
 function attachBetHandlers(){
   document.querySelectorAll('.odds-group button').forEach(btn=>{
-    btn.onclick=()=>btn.classList.toggle('selected');
+    btn.onclick = ()=>{
+      const matchId = btn.dataset.id;
+      // Bỏ chọn các button khác cùng trận
+      document.querySelectorAll(`#matchContainer .match-card button[data-id="${matchId}"]`).forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+
+      // Hiển thị dự đoán số tiền nhận/lời
+      const amountInput = document.getElementById(`bet-amount-${matchId}`);
+      const amount = parseInt(amountInput.value);
+      const matchSnap = btn.closest('.match-card');
+      if(amount && amount>0){
+        const oddsAtBet = parseFloat(btn.querySelector('b').textContent);
+        const potential = amount * oddsAtBet;
+        const profit = potential - amount;
+        let infoEl = matchSnap.querySelector('.bet-info');
+        if(!infoEl){
+          infoEl = document.createElement('div');
+          infoEl.className = 'bet-info';
+          infoEl.style.marginTop = '6px';
+          matchSnap.appendChild(infoEl);
+        }
+        infoEl.textContent = `💰 Dự đoán: Nhận ${potential.toLocaleString()} VNĐ (lời ${profit.toLocaleString()} VNĐ)`;
+      } else {
+        const infoEl = matchSnap.querySelector('.bet-info');
+        if(infoEl) infoEl.remove();
+      }
+    };
   });
 }
 
 // Xác nhận cược
 function attachConfirmButtons(){
   document.querySelectorAll('.confirm-bet-btn').forEach(btn=>{
-    btn.onclick=async ()=>{
+    btn.onclick = async ()=>{
       const matchId = btn.dataset.id;
-      const selectedButtons = document.querySelectorAll(`#matchContainer .match-card button.selected[data-id="${matchId}"]`);
-      if(selectedButtons.length===0) return alert("Chọn ít nhất 1 kèo.");
+      const selectedButton = document.querySelector(`#matchContainer .match-card button.selected[data-id="${matchId}"]`);
+      if(!selectedButton) return alert("Chọn 1 kèo.");
 
       const amountInput = document.getElementById(`bet-amount-${matchId}`);
       const amount = parseInt(amountInput.value);
@@ -139,23 +165,23 @@ function attachConfirmButtons(){
       const match = matchSnap.data();
       if(match.status!=='open') return alert("Đã khóa cược.");
 
-      for(const btn of selectedButtons){
-        const betType = btn.dataset.type;
-        const oddsAtBet = match.odds[betType]||1.0;
-        await addDoc(betsRef,{
-          userId: user.uid,
-          matchId,
-          betType,
-          amount,
-          odds: oddsAtBet,
-          status:'pending',
-          createdAt: new Date()
-        });
-      }
+      const betType = selectedButton.dataset.type;
+      const oddsAtBet = match.odds[betType]||1.0;
+      await addDoc(betsRef,{
+        userId: user.uid,
+        matchId,
+        betType,
+        amount,
+        odds: oddsAtBet,
+        status:'pending',
+        createdAt: new Date()
+      });
 
       await updateDoc(userRef,{balance: balance-amount});
       amountInput.value='';
-      document.querySelectorAll('.selected').forEach(b=>b.classList.remove('selected'));
+      selectedButton.classList.remove('selected');
+      const infoEl = selectedButton.closest('.match-card').querySelector('.bet-info');
+      if(infoEl) infoEl.remove();
       alert("✅ Đặt cược thành công!");
     };
   });
