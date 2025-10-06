@@ -128,3 +128,18 @@ footer th, footer td {
 #ticketTable th {
   background: #f7fafc;
 }
+
+#userGuide {
+  position: fixed;
+  top: 50%;          /* vị trí giữa chiều cao màn hình */
+  right: 20px;       /* sát mép phải màn hình */
+  transform: translateY(-50%); /* căn giữa theo chiều dọc */
+  max-width: 280px;
+  background: rgba(255, 255, 200, 0.9);
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  font-size: 0.9em;
+  z-index: 1000;
+  line-height: 1.4;
+}

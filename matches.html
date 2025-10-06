@@ -39,7 +39,65 @@
   <tbody></tbody>
 </table>
 
-<!-- Popup vé cược -->
+<!-- Nút hướng dẫn -->
+<button id="guideBtn" style="
+  position: fixed;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  z-index: 1000;
+  padding: 10px 14px;
+  background:#1a73e8;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+">💡 Hướng dẫn</button>
+
+<!-- Popup hướng dẫn -->
+<div id="guideModal" style="
+  display:none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  width: 320px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+  padding: 20px;
+  z-index: 1001;
+">
+  <h3>Hướng dẫn sử dụng</h3>
+  <p>
+    1️⃣ Nhập số tiền cược.<br>
+    2️⃣ Chọn kèo muốn đặt.<br>
+    3️⃣ Nhấn "Xác nhận cược".<br>
+    4️⃣ Kiểm tra trạng thái cược trong vé cược.
+  </p>
+  <button id="closeGuide" style="
+    margin-top: 10px;
+    padding: 6px 12px;
+    background:#e53935;
+    color:white;
+    border:none;
+    border-radius:4px;
+    cursor:pointer;
+  ">Đóng</button>
+</div>
+
+<script>
+  const guideBtn = document.getElementById('guideBtn');
+  const guideModal = document.getElementById('guideModal');
+  const closeGuide = document.getElementById('closeGuide');
+
+  guideBtn.onclick = () => guideModal.style.display = 'block';
+  closeGuide.onclick = () => guideModal.style.display = 'none';
+  window.onclick = e => { 
+    if(e.target === guideModal) guideModal.style.display = 'none'; 
+  };
+</script>
+
 <!-- Popup vé cược -->
 <div id="ticketModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000;">
   <div class="modal-content" style="background:#fff; padding:20px; border-radius:8px; max-width:900px; width:90%; max-height:80%; overflow:auto; position:relative;">
@@ -63,4 +121,9 @@
 
 <script type="module" src="matches.js"></script>
 </body>
+<!-- Hướng dẫn người dùng -->
+<div id="userGuide">
+  💡 Nhập số tiền, chọn kèo và nhấn "Xác nhận cược". Trạng thái cược sẽ hiển thị ở popup vé cược.
+</div>
+
 </html>
