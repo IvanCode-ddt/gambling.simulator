@@ -37,10 +37,9 @@ input[type=text], input[type=number] { padding:6px; width:70%; margin-bottom:6px
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, where, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
 
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyAz6bab_GFDCMI6TQNpyJAySXruvZN7p5c",
   authDomain: "minibetting-30c79.firebaseapp.com",
@@ -59,22 +58,18 @@ const firebaseMatchesEl = document.getElementById("firebaseMatches");
 const addMatchBtn = document.getElementById("addMatchBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 
-// --- Auth
 onAuthStateChanged(auth,user=>{ if(!user) location.href="index.html"; });
 logoutBtn.onclick=()=>signOut(auth);
 
-// --- Load matches
 onSnapshot(matchesRef,snap=>{
   firebaseMatchesEl.innerHTML="";
   snap.forEach(docSnap=>renderFirebaseMatch(docSnap.id,docSnap.data()));
 });
 
-// --- Render match card
 function renderFirebaseMatch(id,m){
   const card=document.createElement("div");
   card.className="match-card";
 
-  // nhóm kèo
   const group1=["winA","draw","winB"];
   const group2=["over25","under25"];
   const group3=["cornerOver","cornerUnder"];
@@ -114,8 +109,18 @@ function renderFirebaseMatch(id,m){
     <button data-publish="${id}" class="secondary">📢 Công bố</button>
     <button data-delete="${id}" class="danger">🗑 Xóa</button>
   `;
-
   firebaseMatchesEl.appendChild(card);
+
+  // nút khoá/cho phép cược
+  const lockBtn = document.createElement("button");
+  lockBtn.textContent = m.status === 'locked' ? '🔓 Cho phép cược' : '🔒 Khoá cược';
+  lockBtn.className = m.status === 'locked' ? 'secondary' : 'danger';
+  lockBtn.onclick = async () => {
+    const newStatus = m.status === 'locked' ? 'open' : 'locked';
+    await updateDoc(doc(db,"matches",id), { status: newStatus });
+    alert(`⚡ Trạng thái cược đã cập nhật: ${newStatus==='locked'?'Đã khóa':'Mở cược'}`);
+  };
+  card.appendChild(lockBtn);
 
   card.querySelector(`[data-save="${id}"]`).onclick=async()=>{
     const newOdds={};
@@ -127,16 +132,35 @@ function renderFirebaseMatch(id,m){
   card.querySelector(`[data-publish="${id}"]`).onclick=async()=>{
     const results={};
     card.querySelectorAll("input[data-result]").forEach(chk=>results[chk.dataset.result]=chk.checked?'win':'lose');
+
     await updateDoc(doc(db,"matches",id),{results,status:'finished'});
-    alert("📢 Đã công bố kết quả!");
+
+    // xử lý bets
+    const betsSnapshot = await getDocs(query(collection(db,"bets"), where("matchId","==",id)));
+    for(const betDoc of betsSnapshot.docs){
+      const bet = betDoc.data();
+      const userRef = doc(db,"users",bet.userId);
+      const userSnap = await getDoc(userRef);
+      let balance = (userSnap.exists() && userSnap.data().balance)?userSnap.data().balance:0;
+
+      if(results[bet.betType]==='win'){
+        const payout = bet.amount * bet.odds;
+        balance += payout;
+        await updateDoc(userRef,{balance});
+        await updateDoc(betDoc.ref,{status:'won',payout});
+      } else {
+        await updateDoc(betDoc.ref,{status:'lost',payout:0});
+      }
+    }
+
+    alert("📢 Đã công bố kết quả và xử lý cược!");
   };
 
-  card.querySelector(`[data-delete="${id}"]`).onclick=async()=>{
+  card.querySelector(`[data-delete="${id}"]`).onclick=async()=>{ 
     if(confirm("Xóa trận này?")) await deleteDoc(doc(db,"matches",id));
   };
 }
 
-// --- Thêm trận mới
 addMatchBtn.onclick=async()=>{
   const teamA=prompt("Tên đội A");
   const teamB=prompt("Tên đội B");
@@ -146,7 +170,6 @@ addMatchBtn.onclick=async()=>{
   await addDoc(matchesRef,{teamA,teamB,startTime,odds,status:'open'});
 }
 
-// --- Translate key
 function translateKey(key,m){
   switch(key){
     case 'winA': return `${m.teamA} thắng`;

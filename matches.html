@@ -40,12 +40,22 @@
 </table>
 
 <!-- Popup vé cược -->
-<div id="ticketModal">
-  <div class="modal-content">
-    <button id="ticketClose">Đóng</button>
+<!-- Popup vé cược -->
+<div id="ticketModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000;">
+  <div class="modal-content" style="background:#fff; padding:20px; border-radius:8px; max-width:900px; width:90%; max-height:80%; overflow:auto; position:relative;">
+    <button id="ticketClose" style="position:absolute; top:10px; right:10px; padding:6px 12px;">Đóng</button>
     <h3>🎟 Vé cược của tôi</h3>
-    <table>
-      <thead><tr><th>Trận</th><th>Kèo</th><th>Số tiền</th><th>Trạng thái</th><th>Payout</th></tr></thead>
+    <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+      <thead>
+        <tr style="background:#f0f0f0;">
+          <th style="padding:8px; border:1px solid #ccc;">Trận</th>
+          <th style="padding:8px; border:1px solid #ccc;">Kèo</th>
+          <th style="padding:8px; border:1px solid #ccc;">Tiền cược</th>
+          <th style="padding:8px; border:1px solid #ccc;">Tiền nếu thắng</th>
+          <th style="padding:8px; border:1px solid #ccc;">Tiền lời</th>
+          <th style="padding:8px; border:1px solid #ccc;">Trạng thái</th>
+        </tr>
+      </thead>
       <tbody id="ticketTableBody"></tbody>
     </table>
   </div>

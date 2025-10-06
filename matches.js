@@ -54,7 +54,6 @@ function translateBetKey(key, match) {
 onAuthStateChanged(auth, async (user)=>{
   if(!user){ window.location.href='index.html'; return; }
 
-  // Lấy thông tin user từ Firestore
   const userRef = doc(db,'users',user.uid);
   onSnapshot(userRef, snap => {
       if(snap.exists()){
@@ -95,7 +94,7 @@ function loadMatches(){
       card.innerHTML=`
         <strong>${m.teamA}</strong> vs <strong>${m.teamB}</strong><br>
         🕒 ${new Date(m.startTime).toLocaleString()}<br>
-        Trạng thái: <b>${m.status}</b><br>
+        Trạng thái: <b>${m.status}</b> ${m.status==='locked'? '⚠️ Cược đã khóa':''}<br>
         <input type="number" id="bet-amount-${id}" placeholder="Số tiền" style="width:120px; margin-top:6px;"><br>
 
         <div class="odds-group">${group1.map(k=>`<button data-id="${id}" data-type="${k}" ${m.status!=='open'?'disabled':''}>${translateBetKey(k,m)}<br><b>${m.odds[k]}</b></button>`).join('')}</div>
@@ -118,28 +117,46 @@ function attachBetHandlers(){
   document.querySelectorAll('.odds-group button').forEach(btn=>{
     btn.onclick = ()=>{
       const matchId = btn.dataset.id;
+
+      // Xóa class selected của tất cả kèo cùng trận, chỉ chọn 1
       document.querySelectorAll(`#matchContainer .match-card button[data-id="${matchId}"]`).forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');
 
       const amountInput = document.getElementById(`bet-amount-${matchId}`);
       const amount = parseInt(amountInput.value);
       const matchSnap = btn.closest('.match-card');
+
+      // Kiểm tra và hiển thị dự đoán
+      let infoEl = matchSnap.querySelector('.bet-info');
+      if(!infoEl){
+        infoEl = document.createElement('div');
+        infoEl.className = 'bet-info';
+        infoEl.style.marginTop = '6px';
+        infoEl.style.fontWeight = 'bold';
+        matchSnap.appendChild(infoEl);
+      }
+
       if(amount && amount>0){
         const oddsAtBet = parseFloat(btn.querySelector('b').textContent);
         const potential = amount * oddsAtBet;
         const profit = potential - amount;
-        let infoEl = matchSnap.querySelector('.bet-info');
-        if(!infoEl){
-          infoEl = document.createElement('div');
-          infoEl.className = 'bet-info';
-          infoEl.style.marginTop = '6px';
-          matchSnap.appendChild(infoEl);
-        }
-        infoEl.textContent = `💰 Dự đoán: Nhận ${potential.toLocaleString()} VNĐ (lời ${profit.toLocaleString()} VNĐ)`;
+        infoEl.textContent = `💰 Dự đoán: Tiền cược ${amount.toLocaleString()} VNĐ → Tiền nếu thắng ${potential.toLocaleString()} VNĐ (Lời ${profit.toLocaleString()} VNĐ)`;
       } else {
-        const infoEl = matchSnap.querySelector('.bet-info');
-        if(infoEl) infoEl.remove();
+        infoEl.textContent = `💡 Nhập số tiền và chọn kèo để dự đoán tiền thắng.`;
       }
+
+      // Cập nhật dự đoán khi thay đổi số tiền
+      amountInput.oninput = ()=>{
+        const amt = parseInt(amountInput.value);
+        if(amt && amt>0){
+          const oddsAtBet = parseFloat(btn.querySelector('b').textContent);
+          const potential = amt * oddsAtBet;
+          const profit = potential - amt;
+          infoEl.textContent = `💰 Dự đoán: Tiền cược ${amt.toLocaleString()} VNĐ → Tiền nếu thắng ${potential.toLocaleString()} VNĐ (Lời ${profit.toLocaleString()} VNĐ)`;
+        } else {
+          infoEl.textContent = `💡 Nhập số tiền và chọn kèo để dự đoán tiền thắng.`;
+        }
+      };
     };
   });
 }
@@ -198,23 +215,33 @@ async function loadMyTickets(){
   const q = query(betsRef, where('userId','==',user.uid));
   const snap = await getDocs(q);
   ticketTableBody.innerHTML='';
+
   for(const docSnap of snap.docs){
     const b = docSnap.data();
     const matchSnap = await getDoc(doc(db,'matches',b.matchId));
     const m = matchSnap.exists()?matchSnap.data():null;
     const matchName = m?`${m.teamA} 🆚 ${m.teamB}`:'Trận đã xóa';
-    const statusText = b.status==='pending'?'⏳ Chờ':(b.status==='win'?'✅ Thắng':'❌ Thua');
+
+    const amount = b.amount || 0;
+    const odds = b.odds || 1;
+    const potential = amount * odds;
+    const profit = potential - amount;
+
+    const statusText = b.status==='pending'?'⏳ Chờ':(b.status==='won'?'✅ Thắng':'❌ Thua');
+
     ticketTableBody.insertAdjacentHTML('beforeend',`
       <tr>
-        <td>${matchName}</td>
-        <td>${translateBetKey(b.betType,m||{})}</td>
-        <td>${(b.amount||0).toLocaleString()} VNĐ</td>
-        <td>${statusText}</td>
-        <td>${b.payout?b.payout.toLocaleString()+' VNĐ':'-'}</td>
+        <td style="padding:6px; border:1px solid #ccc;">${matchName}</td>
+        <td style="padding:6px; border:1px solid #ccc;">${translateBetKey(b.betType,m||{})}</td>
+        <td style="padding:6px; border:1px solid #ccc;">${amount.toLocaleString()} VNĐ</td>
+        <td style="padding:6px; border:1px solid #ccc;">${potential.toLocaleString()} VNĐ</td>
+        <td style="padding:6px; border:1px solid #ccc;">${profit.toLocaleString()} VNĐ</td>
+        <td style="padding:6px; border:1px solid #ccc;">${statusText}</td>
       </tr>
     `);
   }
 }
+
 
 // Leaderboard
 function loadLeaderboard(){
