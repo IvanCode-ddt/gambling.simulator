@@ -16,18 +16,22 @@ const db = firebase.firestore();
 
 // Đăng ký
 document.getElementById('btnRegister')?.addEventListener('click', async () => {
-  const email = document.getElementById('regEmail').value;
+  const nickname = document.getElementById('regNickname').value.trim();
   const pass = document.getElementById('regPass').value;
-  if (!email || !pass) return alert('Nhập đầy đủ email và mật khẩu');
+  if (!nickname || !pass) return alert('Nhập đầy đủ nickname và mật khẩu');
 
   try {
-    const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
+    // Tạo user "ảo" với email tạm, Firebase Auth bắt buộc email
+    const tempEmail = `${nickname}@example.com`; 
+    const userCredential = await auth.createUserWithEmailAndPassword(tempEmail, pass);
     const user = userCredential.user;
+
+    // Lưu nickname thực vào Firestore
     await db.collection('users').doc(user.uid).set({
-      email: email,
-      displayName: email,
+      nickname: nickname,
       balance: 1000000
     });
+
     alert('Đăng ký thành công! Bạn được 1,000,000 VNĐ ảo.');
     window.location.href = 'matches.html';
   } catch(err) {
@@ -37,10 +41,13 @@ document.getElementById('btnRegister')?.addEventListener('click', async () => {
 
 // Đăng nhập
 document.getElementById('btnLogin')?.addEventListener('click', async () => {
-  const email = document.getElementById('loginEmail').value;
+  const nickname = document.getElementById('loginNickname').value.trim();
   const pass = document.getElementById('loginPass').value;
+  if (!nickname || !pass) return alert('Nhập đầy đủ nickname và mật khẩu');
+
   try {
-    const userCredential = await auth.signInWithEmailAndPassword(email, pass);
+    const tempEmail = `${nickname}@example.com`; 
+    const userCredential = await auth.signInWithEmailAndPassword(tempEmail, pass);
     window.location.href = 'matches.html';
   } catch(err) {
     alert('Đăng nhập thất bại: ' + err.message);

@@ -53,10 +53,16 @@ function translateBetKey(key, match) {
 // --- Auth
 onAuthStateChanged(auth, async (user)=>{
   if(!user){ window.location.href='index.html'; return; }
-  userEmailEl.textContent = user.email || user.displayName || user.uid;
 
+  // Lấy thông tin user từ Firestore
   const userRef = doc(db,'users',user.uid);
-  onSnapshot(userRef,snap=>{ if(snap.exists()) userBalanceEl.textContent = fmt(snap.data().balance||0); });
+  onSnapshot(userRef, snap => {
+      if(snap.exists()){
+          const nickname = snap.data().nickname || snap.data().displayName || user.uid;
+          userEmailEl.textContent = nickname;
+          userBalanceEl.textContent = fmt(snap.data().balance || 0);
+      }
+  });
 
   loadMatches();
   loadLeaderboard();
@@ -112,11 +118,9 @@ function attachBetHandlers(){
   document.querySelectorAll('.odds-group button').forEach(btn=>{
     btn.onclick = ()=>{
       const matchId = btn.dataset.id;
-      // Bỏ chọn các button khác cùng trận
       document.querySelectorAll(`#matchContainer .match-card button[data-id="${matchId}"]`).forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');
 
-      // Hiển thị dự đoán số tiền nhận/lời
       const amountInput = document.getElementById(`bet-amount-${matchId}`);
       const amount = parseInt(amountInput.value);
       const matchSnap = btn.closest('.match-card');
@@ -221,7 +225,7 @@ function loadLeaderboard(){
     leaderboardBody.innerHTML = arr.map((u,i)=>`
       <tr>
         <td>${i+1}</td>
-        <td>${u.displayName||u.email}</td>
+        <td>${u.nickname || u.displayName || u.uid}</td>
         <td>${(u.balance||0).toLocaleString()} VNĐ</td>
       </tr>
     `).join('');
